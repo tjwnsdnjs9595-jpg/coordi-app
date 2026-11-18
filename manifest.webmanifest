@@ -1,0 +1,9 @@
+{
+  "name": "오늘의 코디",
+  "short_name": "코디",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f5f8",
+  "theme_color": "#1f2a44",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

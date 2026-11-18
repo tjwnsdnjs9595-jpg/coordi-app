@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>오늘의 코디</title>
+  <meta name="theme-color" content="#1f2a44">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="오늘의 코디">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>오늘의 코디</h1>
+    <span id="mode-badge" class="badge" hidden>체험 모드</span>
+  </header>
+
+  <main>
+    <!-- 첫 화면: 연결 -->
+    <section id="view-setup" class="view" hidden>
+      <div class="card">
+        <h2>시작하기</h2>
+        <p class="muted">옷장 데이터는 내 GitHub 비공개 저장소에 저장되고, AI 분류·추천은 GitHub Actions에서 실행돼요.</p>
+        <form id="setup-form" class="form">
+          <label>GitHub 아이디<input name="owner" autocomplete="off" required placeholder="예: myname"></label>
+          <label>데이터 저장소 이름<input name="repo" autocomplete="off" required value="coordi-data"></label>
+          <label>접근 토큰<input name="token" type="password" autocomplete="off" required placeholder="github_pat_..."></label>
+          <p class="muted small">토큰은 이 휴대폰 브라우저에만 저장돼요. 데이터 저장소 하나에만 권한을 준 토큰을 쓰세요.</p>
+          <button class="primary" type="submit">연결하기</button>
+          <p id="setup-msg" class="msg"></p>
+        </form>
+      </div>
+      <div class="card">
+        <h2>먼저 둘러보기</h2>
+        <p class="muted">GitHub 연결 없이 화면만 써 볼 수 있어요. AI 대신 임시 규칙으로 동작하고, 데이터는 이 기기에만 남아요.</p>
+        <button id="demo-btn" type="button">체험 모드로 시작</button>
+      </div>
+    </section>
+
+    <!-- 오늘 -->
+    <section id="view-today" class="view" hidden>
+      <div class="card weather" id="weather-card"></div>
+      <div class="card">
+        <h2>오늘 일정</h2>
+        <div class="chips" id="occasion-chips"></div>
+        <input id="occasion-custom" class="custom" placeholder="직접 입력 (예: 결혼식 하객)" hidden>
+        <button id="get-outfit" class="primary wide" type="button">이 일정으로 코디 받기</button>
+        <p id="today-msg" class="msg"></p>
+      </div>
+      <div id="outfits"></div>
+    </section>
+
+    <!-- 옷장 -->
+    <section id="view-closet" class="view" hidden>
+      <div class="card row">
+        <label class="primary file-btn">+ 옷 사진 추가
+          <input id="photo-input" type="file" accept="image/*" multiple hidden>
+        </label>
+        <span id="closet-count" class="muted"></span>
+      </div>
+      <p id="closet-msg" class="msg"></p>
+      <div class="chips" id="cat-chips"></div>
+      <div class="grid" id="closet-grid"></div>
+    </section>
+
+    <!-- 기록 -->
+    <section id="view-history" class="view" hidden>
+      <div id="history-list"></div>
+    </section>
+
+    <!-- 설정 -->
+    <section id="view-settings" class="view" hidden>
+      <form id="config-form" class="card form">
+        <h2>내 정보</h2>
+        <label>지역 이름<input name="locname" placeholder="예: 서울 강남"></label>
+        <div class="row">
+          <span class="muted small" id="loc-coords"></span>
+          <button type="button" id="loc-btn">현재 위치로</button>
+        </div>
+        <label>평일 기본 일정<input name="weekday_occasion" placeholder="출근"></label>
+        <label>주말 기본 일정<input name="weekend_occasion" placeholder="휴일"></label>
+        <label>선호 스타일<textarea name="pref_style" rows="2" placeholder="예: 깔끔한 미니멀, 무채색 위주"></textarea></label>
+        <label>피하고 싶은 것<textarea name="avoid" rows="2" placeholder="예: 반바지, 형광색"></textarea></label>
+        <label>참고 사항<textarea name="notes" rows="2" placeholder="예: 회사는 비즈니스 캐주얼, 추위를 많이 탐"></textarea></label>
+        <button class="primary" type="submit">저장</button>
+        <p id="config-msg" class="msg"></p>
+      </form>
+      <div class="card">
+        <h2>연결</h2>
+        <p class="muted small" id="conn-info"></p>
+        <button id="logout-btn" type="button" class="danger">연결 해제</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs">
+    <button data-view="today" class="active">오늘</button>
+    <button data-view="closet">옷장</button>
+    <button data-view="history">기록</button>
+    <button data-view="settings">설정</button>
+  </nav>
+
+  <!-- 옷 편집 -->
+  <dialog id="item-dialog">
+    <form method="dialog" id="item-form" class="form">
+      <img id="item-photo" alt="">
+      <p id="item-status" class="msg"></p>
+      <label>종류<select name="category"></select></label>
+      <label>이름<input name="iname"></label>
+      <label>색<input name="color"></label>
+      <label>두께<select name="thickness"></select></label>
+      <fieldset><legend>계절</legend><div id="season-boxes" class="chips"></div></fieldset>
+      <label>격식<select name="formality"></select></label>
+      <label>메모<input name="memo" placeholder="예: 세탁 중이면 '세탁중'"></label>
+      <label class="check"><input type="checkbox" name="skip"> 당분간 추천에서 빼기</label>
+      <div class="row">
+        <button value="delete" class="danger" type="submit">삭제</button>
+        <span class="spacer"></span>
+        <button value="cancel" type="submit">닫기</button>
+        <button value="save" class="primary" type="submit">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
