@@ -291,12 +291,7 @@ function renderToday() {
     const worn = wornToday.some((r) => r.item_ids.join() === ids.join());
     box.append(h("div", { class: "card outfit" },
       h("h3", {}, o.title),
-      h("div", { class: "pieces" }, ids.map((id) => {
-        const it = itemById(id);
-        return h("div", { class: "piece" },
-          it ? h("img", { dataset: { photo: it.photo }, alt: it.name || "" }) : h("div", { class: "thumb" }),
-          h("div", {}, it ? it.name : "(삭제된 옷)"));
-      })),
+      outfitVisual(ids),
       h("p", {}, o.reason),
       o.tip ? h("p", { class: "tip" }, "💡 " + o.tip) : null,
       h("div", { class: "actions" }, worn
@@ -308,6 +303,51 @@ function renderToday() {
     box.append(h("button", { class: "wide", type: "button", onclick: () => requestOutfit(true) }, "다른 코디 보기"));
   }
   hydratePhotos(box);
+}
+
+/* Mannequin board: background-free cutouts placed on a body outline.
+ * Slots are [left, top, width, height, z] in % of the board. */
+const MANNEQUIN_SVG = `<svg class="mannequin" viewBox="0 0 300 440" aria-hidden="true">
+  <circle cx="150" cy="38" r="22"/>
+  <rect x="141" y="58" width="18" height="16" rx="6"/>
+  <path d="M96 84 Q150 70 204 84 L214 150 Q206 154 198 150 L192 112 L190 210 Q150 222 110 210 L108 112 L102 150 Q94 154 86 150 Z"/>
+  <path d="M110 214 Q150 226 190 214 L186 392 Q176 398 166 392 L154 250 L146 250 L134 392 Q124 398 114 392 Z"/>
+</svg>`;
+
+function boardSlot(cat, hasOuter) {
+  switch (cat) {
+    case "아우터": return [18, 15, 64, 42, 2];
+    case "상의": return hasOuter ? [30, 18, 40, 32, 3] : [22, 16, 56, 38, 3];
+    case "원피스": return [22, 16, 56, 62, 3];
+    case "하의": return [28, 46, 44, 44, 1];
+    case "신발": return [28, 87, 44, 12, 4];
+    default: return [72, 44, 26, 22, 5];  // 가방·소품
+  }
+}
+
+function outfitVisual(ids) {
+  const items = ids.map(itemById).filter(Boolean);
+  const names = h("div", { class: "piece-names" }, ids.map((id) => h("span", { class: "chip" }, (itemById(id) || {}).name || "(지금은 없는 옷)")));
+  if (!items.length || items.some((it) => !it.cutout)) {
+    // cutouts not ready yet: plain photo grid
+    return h("div", {},
+      h("div", { class: "pieces" }, items.map((it) => h("div", { class: "piece" },
+        h("img", { dataset: { photo: it.photo }, alt: it.name || "" }), h("div", {}, it.name)))),
+      items.some((it) => !it.cutout && !it.cutout_error) ? h("p", { class: "muted small" }, "옷 사진 배경을 지우는 중이라 마네킹 대신 사진으로 보여요.") : null);
+  }
+  const board = h("div", { class: "board" });
+  board.innerHTML = MANNEQUIN_SVG;
+  const hasOuter = items.some((it) => it.category === "아우터");
+  const seen = {};
+  for (const it of items) {
+    const n = (seen[it.category] = (seen[it.category] || 0) + 1) - 1;
+    const [l, t, w, hgt, z] = boardSlot(it.category, hasOuter);
+    board.append(h("img", {
+      class: "layer", alt: it.name || "", dataset: { photo: it.cutout },
+      style: `left:${l - 7 * n}%;top:${t + 3 * n}%;width:${w}%;height:${hgt}%;z-index:${Math.max(0, z * 2 - n)}`,
+    }));
+  }
+  return h("div", {}, board, names);
 }
 
 async function requestOutfit(retry) {
@@ -482,6 +522,7 @@ async function onItemClose() {
       setMsg(msg, "지우는 중…", "wait");
       S.wardrobe = await S.store.updateJSON("wardrobe.json", EMPTY.wardrobe, (w) => { w.items = w.items.filter((i) => i.id !== id); }, "remove clothes");
       if (it) await S.store.deleteFile(it.photo);
+      if (it && it.cutout) await S.store.deleteFile(it.cutout);
       setMsg(msg, "지웠어요.", "ok");
     } else {
       const fields = {
