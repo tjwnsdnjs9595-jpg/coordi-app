@@ -151,8 +151,8 @@ class GitHubStore {
     });
     if (!r.ok) throw await this.fail(r);
   }
-  // Photos added by the app trigger classify.yml automatically (push on wardrobe.json).
-  async afterPhotosAdded() { /* nothing to do */ }
+  // classify.yml has no push trigger (claude-code-action does not support push events), so start it here.
+  async afterPhotosAdded() { await this.run("classify.yml", {}); }
 }
 
 /* ---------- Demo store (this browser only, fake AI) ---------- */
