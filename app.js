@@ -153,6 +153,14 @@ class GitHubStore {
   }
   // classify.yml has no push trigger (claude-code-action does not support push events), so start it here.
   async afterPhotosAdded() { await this.run("classify.yml", {}); }
+  // Start classify again if photos are still pending and no classify run is queued or running
+  // (e.g. the photos were added by an older cached version of the app).
+  async resumeClassify() {
+    const r = await this.req("/actions/workflows/classify.yml/runs?per_page=1");
+    if (!r.ok) return;
+    const run = (await r.json()).workflow_runs[0];
+    if (!run || run.status === "completed") await this.run("classify.yml", {});
+  }
 }
 
 /* ---------- Demo store (this browser only, fake AI) ---------- */
@@ -176,6 +184,7 @@ class DemoStore {
   async deleteFile(path) { lsDel(this.key(path)); this.mem.delete(path); }
   async photoURL(path) { const b64 = this.get(path); return b64 ? "data:image/jpeg;base64," + b64 : ""; }
   async afterPhotosAdded() { await this.run("classify.yml", {}); }
+  async resumeClassify() { await this.afterPhotosAdded(); }
   async run(workflow, inputs) {
     await sleep(1200);
     if (workflow === "classify.yml") {
@@ -601,7 +610,10 @@ async function start(store) {
     return;
   }
   show("today");
-  if (S.wardrobe.items.some((i) => i.status === "pending")) waitForClassify();
+  if (S.wardrobe.items.some((i) => i.status === "pending")) {
+    try { await store.resumeClassify(); } catch { /* still wait; the run may already be going */ }
+    waitForClassify();
+  }
 }
 
 function bind() {
