@@ -86,19 +86,11 @@ legend { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
 .outfit .pieces { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin: 12px 0; }
 .piece { text-align: center; font-size: 13px; }
 .piece img, .thumb { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; background: var(--chip); display: block; }
-.board {
-  position: relative; width: 100%; max-width: 360px; margin: 12px auto; aspect-ratio: 300 / 440;
-  background: radial-gradient(ellipse at 50% 35%, var(--card) 0%, var(--chip) 100%);
-  border-radius: 14px; overflow: hidden;
-}
-.board .mannequin { position: absolute; inset: 0; width: 100%; height: 100%; }
-.board .mannequin * { fill: var(--line); }
-.board .layer {
-  position: absolute; object-fit: contain; object-position: center top;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .22));
-}
-.piece-names { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-.piece-names .chip { font-size: 12px; padding: 3px 10px; }
+.cut-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+.cut { background: radial-gradient(ellipse at 50% 40%, var(--card) 0%, var(--chip) 100%); border-radius: 12px; padding: 10px; }
+.cut img { width: 100%; aspect-ratio: 1; object-fit: contain; display: block; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .18)); }
+.cut img.raw { object-fit: cover; border-radius: 8px; filter: none; }
+.cut-name { margin-top: 6px; font-size: 13px; text-align: center; line-height: 1.35; }
 .outfit .tip { font-size: 14px; color: var(--muted); }
 .outfit .actions { display: flex; gap: 8px; margin-top: 12px; }
 .outfit .actions button { flex: 1; }
