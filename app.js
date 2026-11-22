@@ -203,15 +203,17 @@ class DemoStore {
     const ready = w.items.filter((i) => i.status === "ready" && !i.hidden);
     const pick = (cats) => { const c = ready.filter((i) => cats.includes(i.category)); return c[Math.floor(Math.random() * c.length)]; };
     const outfits = [];
+    const base = ready.find((i) => i.id === inputs.with_item);
     for (let n = 0; n < 2; n++) {
       const top = pick(["상의", "원피스"]);
-      const parts = [top, top && top.category === "원피스" ? null : pick(["하의"]), pick(["아우터"]), pick(["신발"])].filter(Boolean);
+      let parts = [top, top && top.category === "원피스" ? null : pick(["하의"]), pick(["아우터"]), pick(["신발"])].filter(Boolean);
+      if (base) parts = [base, ...parts.filter((p) => p.category !== base.category)];
       if (parts.length >= 2) outfits.push({ title: `체험 코디 ${n + 1}`, item_ids: [...new Set(parts.map((p) => p.id))], reason: "체험 모드라 무작위로 골랐어요. 실제로는 날씨와 일정에 맞춰 AI가 골라요.", tip: "" });
     }
     const today = todayKST();
     const tried = inputs.retry === "true" && prev.date === today ? [...(prev.tried || []), ...(prev.outfits || []).map((o) => o.item_ids)] : [];
     this.set("today.json", {
-      date: today, occasion: inputs.occasion || "출근", weather: null, tried,
+      date: today, occasion: inputs.occasion || "출근", weather: null, tried, with_item: base ? base.id : "",
       summary: outfits.length ? "체험 모드: 날씨 정보 없이 골랐어요." : "옷장에 상의와 하의를 먼저 등록해 주세요.",
       outfits, generated_at: new Date().toISOString(),
     });
@@ -294,6 +296,12 @@ function renderToday() {
   const box = $("#outfits");
   box.textContent = "";
   if (!fresh) return;
+  const base = t.with_item && itemById(t.with_item);
+  if (base) {
+    box.append(h("div", { class: "card with-item" },
+      h("img", { dataset: { photo: base.cutout || base.photo }, alt: "" }),
+      h("div", {}, h("div", { class: "muted small" }, "이 옷에 맞춘 코디예요"), h("strong", {}, base.name || base.category))));
+  }
   const wornToday = S.history.records.filter((r) => r.date === todayKST());
   (t.outfits || []).forEach((o) => {
     const ids = o.item_ids || [];
@@ -334,7 +342,7 @@ function outfitVisual(ids) {
     items.some((it) => !it.cutout && !it.cutout_error) ? h("p", { class: "muted small" }, "몇 벌은 배경을 지우는 중이라 원래 사진으로 보여요.") : null);
 }
 
-async function requestOutfit(retry) {
+async function requestOutfit(retry, withItem) {
   if (S.busy) return;
   const msg = $("#today-msg");
   const occasion = (S.occasion || "").trim() || defaultOccasion();
@@ -342,8 +350,11 @@ async function requestOutfit(retry) {
   S.busy = true; $("#get-outfit").disabled = true;
   try {
     setMsg(msg, "코디 요청을 보냈어요…", "wait");
-    await S.store.run("recommend.yml", { occasion, retry: String(!!retry) });
-    setMsg(msg, "AI가 날씨와 옷장을 보고 고르는 중이에요. 보통 1~2분 걸려요.", "wait");
+    const inputs = { occasion, retry: String(!!retry) };
+    if (withItem) inputs.with_item = withItem;
+    await S.store.run("recommend.yml", inputs);
+    setMsg(msg, withItem ? "AI가 이 옷과 어울리는 옷을 고르는 중이에요. 보통 1~2분 걸려요."
+      : "AI가 날씨와 옷장을 보고 고르는 중이에요. 보통 1~2분 걸려요.", "wait");
     const done = await waitFor(async () => {
       const { data } = await S.store.readJSON("today.json", {});
       if (data.generated_at && data.generated_at !== before) { S.today = data; return true; }
@@ -489,6 +500,7 @@ async function openItem(id) {
   if (it.status === "pending") setMsg(st, "AI가 분석 중이에요.", "wait");
   else if (it.status === "error") setMsg(st, "분석 실패: " + (it.error || "") + " 직접 적고 저장하면 돼요.", "err");
   else setMsg(st, "");
+  $("#pair-btn").hidden = it.status !== "ready" || !!it.hidden;
   $("#item-dialog").showModal();
 }
 
@@ -524,6 +536,7 @@ async function onItemClose() {
         else if (it.status !== "pending") { it.status = "ready"; delete it.error; }
       }, "edit clothes");
       if (action === "reclassify") { renderCloset(); await S.store.afterPhotosAdded(); await waitForClassify(); return; }
+      if (action === "pair") { setMsg(msg, ""); show("today"); requestOutfit(false, id); return; }
       setMsg(msg, "저장했어요.", "ok");
     }
     renderCloset();
@@ -612,6 +625,7 @@ function bind() {
 
   $("#photo-input").addEventListener("change", (e) => { const files = [...e.target.files]; e.target.value = ""; addPhotos(files); });
   $("#item-dialog").addEventListener("close", onItemClose);
+  $("#pair-btn").addEventListener("click", () => $("#item-dialog").close("pair"));
   // a "다시 분류" button is added next to 삭제 at start-up
   const reBtn = h("button", { value: "reclassify", type: "submit" }, "AI로 다시 분류");
   $("#item-form .row .danger").after(reBtn);

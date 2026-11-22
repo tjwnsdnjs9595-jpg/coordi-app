@@ -91,6 +91,8 @@ legend { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
 .cut img { width: 100%; aspect-ratio: 1; object-fit: contain; display: block; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .18)); }
 .cut img.raw { object-fit: cover; border-radius: 8px; filter: none; }
 .cut-name { margin-top: 6px; font-size: 13px; text-align: center; line-height: 1.35; }
+.with-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; }
+.with-item img { width: 56px; height: 56px; object-fit: contain; border-radius: 10px; background: var(--chip); }
 .outfit .tip { font-size: 14px; color: var(--muted); }
 .outfit .actions { display: flex; gap: 8px; margin-top: 12px; }
 .outfit .actions button { flex: 1; }
