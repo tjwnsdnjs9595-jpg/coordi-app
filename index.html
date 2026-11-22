@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="오늘의 코디">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=20261122a">
+  <link rel="stylesheet" href="style.css?v=20261122b">
   <script>
     // Opened from a KakaoTalk message: KakaoTalk's built-in browser keeps its own storage, so the
     // saved GitHub connection is not there. Hand the page to the phone's normal browser instead.
@@ -54,6 +54,7 @@
         <div class="chips" id="occasion-chips"></div>
         <input id="occasion-custom" class="custom" placeholder="직접 입력 (예: 결혼식 하객)" hidden>
         <button id="get-outfit" class="primary wide" type="button">이 일정으로 코디 받기</button>
+        <button id="pick-open" class="wide" type="button">👕 입고 싶은 옷 골라서 코디 받기</button>
         <p id="today-msg" class="msg"></p>
       </div>
       <div id="outfits"></div>
@@ -97,7 +98,7 @@
       <div class="card">
         <h2>연결</h2>
         <p class="muted small" id="conn-info"></p>
-        <p class="muted small">앱 버전 20261122a</p>
+        <p class="muted small">앱 버전 20261122b</p>
         <button id="logout-btn" type="button" class="danger">연결 해제</button>
       </div>
     </section>
@@ -109,6 +110,15 @@
     <button data-view="history">기록</button>
     <button data-view="settings">설정</button>
   </nav>
+
+  <!-- 입고 싶은 옷 고르기 -->
+  <dialog id="pick-dialog">
+    <div class="row"><h2>어떤 옷을 입고 싶어요?</h2><span class="spacer"></span>
+      <button id="pick-close" type="button">닫기</button></div>
+    <p class="muted small">고른 옷이 꼭 들어간 코디 2개를 AI가 만들어 줘요.</p>
+    <div class="chips" id="pick-chips"></div>
+    <div class="grid" id="pick-grid"></div>
+  </dialog>
 
   <!-- 옷 편집 -->
   <dialog id="item-dialog">
@@ -133,6 +143,6 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=20261122a"></script>
+  <script src="app.js?v=20261122b"></script>
 </body>
 </html>

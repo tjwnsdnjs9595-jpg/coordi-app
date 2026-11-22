@@ -92,6 +92,8 @@ legend { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
 .cut img.raw { object-fit: cover; border-radius: 8px; filter: none; }
 .cut-name { margin-top: 6px; font-size: 13px; text-align: center; line-height: 1.35; }
 .with-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; }
+#pick-open { margin-top: 8px; }
+#pick-dialog h2 { margin: 0; }
 .with-item img { width: 56px; height: 56px; object-fit: contain; border-radius: 10px; background: var(--chip); }
 .outfit .tip { font-size: 14px; color: var(--muted); }
 .outfit .actions { display: flex; gap: 8px; margin-top: 12px; }

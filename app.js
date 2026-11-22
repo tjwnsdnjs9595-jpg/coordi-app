@@ -300,7 +300,9 @@ function renderToday() {
   if (base) {
     box.append(h("div", { class: "card with-item" },
       h("img", { dataset: { photo: base.cutout || base.photo }, alt: "" }),
-      h("div", {}, h("div", { class: "muted small" }, "이 옷에 맞춘 코디예요"), h("strong", {}, base.name || base.category))));
+      h("div", {}, h("div", { class: "muted small" }, "이 옷에 맞춘 코디예요"), h("strong", {}, base.name || base.category)),
+      h("span", { class: "spacer" }),
+      h("button", { type: "button", onclick: openPicker }, "다른 옷")));
   }
   const wornToday = S.history.records.filter((r) => r.date === todayKST());
   (t.outfits || []).forEach((o) => {
@@ -342,12 +344,44 @@ function outfitVisual(ids) {
     items.some((it) => !it.cutout && !it.cutout_error) ? h("p", { class: "muted small" }, "몇 벌은 배경을 지우는 중이라 원래 사진으로 보여요.") : null);
 }
 
+/* picker: choose the piece you want to wear today */
+let pickCat = "전체";
+function openPicker() {
+  renderPicker();
+  $("#pick-dialog").showModal();
+}
+function renderPicker() {
+  const items = S.wardrobe.items.filter((i) => i.status === "ready" && !i.hidden);
+  const chips = $("#pick-chips");
+  chips.textContent = "";
+  for (const c of ["전체", ...CATEGORIES]) {
+    const n = c === "전체" ? items.length : items.filter((i) => i.category === c).length;
+    if (c !== "전체" && !n) continue;
+    chips.append(h("button", { class: "chip" + (pickCat === c ? " on" : ""), type: "button",
+      onclick: () => { pickCat = c; renderPicker(); } }, `${c} ${n}`));
+  }
+  const grid = $("#pick-grid");
+  grid.textContent = "";
+  if (!items.length) grid.append(h("p", { class: "muted" }, "옷장에 분석이 끝난 옷이 아직 없어요."));
+  for (const it of [...items].reverse()) {
+    if (pickCat !== "전체" && it.category !== pickCat) continue;
+    grid.append(h("button", { class: "tile", type: "button", onclick: () => {
+      $("#pick-dialog").close();
+      requestOutfit(false, it.id);
+    } },
+      h("img", { class: "thumb", dataset: { photo: it.photo }, alt: it.name || "옷 사진" }),
+      h("div", { class: "name" }, it.name || "옷"),
+      h("div", { class: "sub" }, [it.category, it.color].filter(Boolean).join(" · "))));
+  }
+  hydratePhotos(grid);
+}
+
 async function requestOutfit(retry, withItem) {
   if (S.busy) return;
   const msg = $("#today-msg");
   const occasion = (S.occasion || "").trim() || defaultOccasion();
   const before = S.today && S.today.generated_at;
-  S.busy = true; $("#get-outfit").disabled = true;
+  S.busy = true; $("#get-outfit").disabled = true; $("#pick-open").disabled = true;
   try {
     setMsg(msg, "코디 요청을 보냈어요…", "wait");
     const inputs = { occasion, retry: String(!!retry) };
@@ -367,7 +401,7 @@ async function requestOutfit(retry, withItem) {
   } catch (e) {
     setMsg(msg, e.message, "err");
   } finally {
-    S.busy = false; $("#get-outfit").disabled = false;
+    S.busy = false; $("#get-outfit").disabled = false; $("#pick-open").disabled = false;
   }
 }
 
@@ -621,6 +655,8 @@ function bind() {
   $("#demo-btn").addEventListener("click", () => { lsSet("coordi-settings", { mode: "demo" }); start(new DemoStore()); });
 
   $("#get-outfit").addEventListener("click", () => requestOutfit(false));
+  $("#pick-open").addEventListener("click", openPicker);
+  $("#pick-close").addEventListener("click", () => $("#pick-dialog").close());
   $("#occasion-custom").addEventListener("input", (e) => { S.occasion = e.target.value || " "; });
 
   $("#photo-input").addEventListener("change", (e) => { const files = [...e.target.files]; e.target.value = ""; addPhotos(files); });
